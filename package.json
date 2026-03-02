@@ -1,0 +1,20 @@
+{
+    "name": "ak_passport_viewer",
+    "version": "1.0.0",
+    "main": "index.js",
+    "author": "stapxs <stapx@outlook.com>",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "license": "MIT",
+    "dependencies": {
+        "three": "^0.183.2"
+    },
+    "devDependencies": {
+        "@types/three": "^0.183.1",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1"
+    }
+}
