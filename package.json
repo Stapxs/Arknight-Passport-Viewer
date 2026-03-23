@@ -1,20 +1,27 @@
 {
     "name": "ak_passport_viewer",
     "version": "1.0.0",
+    "type": "module",
     "main": "index.js",
     "author": "stapxs <stapx@outlook.com>",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "lint": "eslint src",
+        "lint:fix": "eslint src --fix"
     },
     "license": "MIT",
     "dependencies": {
-        "three": "^0.183.2"
+        "three": "^0.183.2",
+        "three-gpu-pathtracer": "^0.0.24",
+        "three-mesh-bvh": "^0.9.9"
     },
     "devDependencies": {
         "@types/three": "^0.183.1",
+        "eslint": "^10.0.2",
         "typescript": "^5.9.3",
+        "typescript-eslint": "^8.56.1",
         "vite": "^7.3.1"
     }
 }

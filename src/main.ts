@@ -1,11 +1,15 @@
 import * as THREE from 'three';
-import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+// import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
+import { PassportModel } from './functions/PassportModel.js';
+import { WebGLPathTracer } from 'three-gpu-pathtracer';
+
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
 // 初始化场景
 const scene: THREE.Scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
+scene.background = new THREE.Color(0xeeeeee);
 
 const modelsPrefix = '';
 const texturesDir = 'napcat';
@@ -20,11 +24,33 @@ const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(
 camera.position.set(0, 5, 20);
 
 // 初始化渲染器
-const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({
+     antialias: false,
+     precision: 'medium',
+    });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
+
+// 初始化 GPU Path Tracer
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const pathTracer = new WebGLPathTracer(renderer);
+pathTracer.dynamicLowRes = true;                    // 启用动态低分辨率渲染
+pathTracer.multipleImportanceSampling = true;       // 多重采样
+if(isMobile) {
+    pathTracer.bounces = 3;                         // 反弹次数
+    pathTracer.transmissiveBounces = 10;            // 投射反弹次数
+    pathTracer.tiles.set(8, 8);                     // 切片数量
+    pathTracer.lowResScale = 0.1;                   // 低分辨率缩放因子
+    pathTracer.renderScale = 0.5;                   // 最终渲染缩放因子
+} else {
+    pathTracer.bounces = 5;                         // 反弹次数
+    pathTracer.transmissiveBounces = 30;            // 投射反弹次数
+    pathTracer.tiles.set(4, 4);                     // 切片数量
+    pathTracer.lowResScale = 0.3;                   // 低分辨率缩放因子
+    pathTracer.renderScale = 1.0;                   // 最终渲染缩放因子
+}
 
 // 环境光与灯光
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -34,11 +60,23 @@ const spotLight = new THREE.SpotLight(0xffffff, 1);
 spotLight.position.set(5, 10, 5);
 scene.add(spotLight);
 
-// 创建 RGBE 加载器
-const hdrLoader = new HDRLoader();
+// // 创建 HDR 加载器
+// const hdrLoader = new HDRLoader();
 
-// 加载 HDR 文件
-hdrLoader.load('/textures/puresky.hdr', (texture) => {
+// // 加载 HDR 文件
+// hdrLoader.load('/textures/puresky.hdr', (texture) => {
+//     texture.mapping = THREE.EquirectangularReflectionMapping;
+//     scene.background = texture;
+//     scene.environment = texture;
+//     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+//     renderer.toneMappingExposure = 1.0;
+// });
+
+// 创建 EXR 加载器
+const exrLoader = new EXRLoader();
+
+// 加载 EXR 文件
+exrLoader.load('/textures/top_area_light_2.exr', (texture) => {
     texture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = texture;
     scene.environment = texture;
@@ -56,160 +94,82 @@ controls.enablePan = true;     // 启用平移功能
 controls.screenSpacePanning = true; // 平移时在屏幕空间而非世界空间
 controls.panSpeed = 0.8;       // 平移速度
 
-/**
- * 加载并反转颜色的纹理，用于背面贴图
- * @param path 纹理路径
- * @returns 反转颜色后的 THREE.Texture 对象
- */
-function loadInvertedTexture(path: string): THREE.Texture {
-    const texture = new THREE.Texture();
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.flipY = false;
+// 判断 Passport 关键贴图是否全部就绪，避免 path tracer 在贴图未加载时缓存错误材质
+const getMeshMap = (mesh: THREE.Mesh | null): THREE.Texture | null => {
+    if (!mesh || Array.isArray(mesh.material)) return null;
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    return mat.map ?? null;
+};
 
-    const img = new Image();
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            data[i] = 255 - data[i];     // R
-            data[i + 1] = 255 - data[i + 1]; // G
-            data[i + 2] = 255 - data[i + 2]; // B
-            // data[i + 3] alpha 保持不变
-        }
-        ctx.putImageData(imageData, 0, 0);
-        texture.image = canvas;
-        texture.needsUpdate = true;
-    };
-    img.src = path;
-    return texture;
-}
+const isTextureReady = (tex: THREE.Texture | null): boolean => {
+    const img = tex?.image as (HTMLImageElement | HTMLCanvasElement | undefined);
+    if (!img) return false;
+    if (img instanceof HTMLImageElement) return img.complete && img.naturalWidth > 0;
+    return (img as HTMLCanvasElement).width > 0 && (img as HTMLCanvasElement).height > 0;
+};
 
-/**
- * 为给定 Mesh 应用双面纹理，背面纹理可选择是否反转颜色
- * @param mesh 需要应用双面纹理的 THREE.Mesh 对象
- * @param frontPath 正面纹理路径
- * @param backPath 背面纹理路径
- * @param invertBack 是否反转背面纹理颜色，默认为 false
- * @returns 背面 Mesh 对象的引用，供后续动态排序使用
- */
-function applyDoubleSidedTexture(
-    mesh: THREE.Mesh,
-    frontPath: string,
-    backPath: string,
-    invertBack = false,
-): THREE.Mesh {
-    const tl = new THREE.TextureLoader();
-
-    const loadTex = (path: string) => {
-        const tex = tl.load(path);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.flipY = false;
-        return tex;
-    };
-
-    const matBase = {
-        transparent: true,
-        depthWrite: false,
-        depthTest: true,
-    };
-
-    mesh.material = new THREE.MeshStandardMaterial({
-        ...matBase,
-        map: loadTex(frontPath),
-        side: THREE.FrontSide,
-    });
-
-    const backMesh = new THREE.Mesh(
-        mesh.geometry,
-        new THREE.MeshStandardMaterial({
-            ...matBase,
-            map: invertBack ? loadInvertedTexture(backPath) : loadTex(backPath),
-            side: THREE.BackSide,
-        })
+const arePassportTexturesReady = (): boolean => {
+    return (
+        isTextureReady(getMeshMap(passport.plane2Mesh)) &&
+        isTextureReady(getMeshMap(passport.plane2Back)) &&
+        isTextureReady(getMeshMap(passport.plane3Mesh)) &&
+        isTextureReady(getMeshMap(passport.plane3Back))
     );
-    // 作为 mesh 的子节点而非兄弟节点，自动继承 mesh 的世界变换
-    mesh.add(backMesh);
-    return backMesh;
-}
+};
 
-// Plane_2 / Plane_3 及其背面 Mesh 引用，供动态排序使用
-let plane2Mesh: THREE.Mesh | null = null;
-let plane2Back: THREE.Mesh | null = null;
-let plane3Mesh: THREE.Mesh | null = null;
-let plane3Back: THREE.Mesh | null = null;
-
-// 加载模型
-const loader = new GLTFLoader();
-loader.load(`/models/${modelsPrefix}passport.glb`, (gltf: GLTF) => {
-    gltf.scene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-            if (child.name === 'Plane_1') {
-                const prevMaterial = child.material;
-                child.material = new THREE.MeshPhysicalMaterial({
-                    map: prevMaterial.map,
-                    color: prevMaterial.color,
-                    roughness: 0.1,
-                    metalness: 0,
-                    ior: 1.49,
-                    thickness: 1.5,
-                    transmission: 1,
-                    depthWrite: false,
-                    envMapIntensity: 1.5,
-                    attenuationColor: new THREE.Color(0xeceff1),
-                    attenuationDistance: 0.5,
-                });
-            } else {
-                if (child.name === 'Plane_2') {
-                    plane2Mesh = child;
-                    plane2Back = applyDoubleSidedTexture(child, `textures/passport/${texturesDir}/11.png`, `textures/passport/${texturesDir}/12.png`, true);
-                }
-                if (child.name === 'Plane_3') {
-                    plane3Mesh = child;
-                    plane3Back = applyDoubleSidedTexture(child, `textures/passport/${texturesDir}/22.png`, `textures/passport/${texturesDir}/21.png`);
-                }
-            }
-        }
-    });
-    scene.add(gltf.scene);
-    console.log('模型加载成功！', gltf);
-},
-(xhr) => {
-    console.log(`加载进度：${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
-},
-(error) => {
-    console.error('模型加载出错：', error);
+// 加载 Passport 模型
+const passport = new PassportModel(modelsPrefix, texturesDir);
+let needsPathTracerMaterialSync = false;
+passport.load(scene, () => {
+    pathTracer.setScene(scene, camera);
+    needsPathTracerMaterialSync = true;
 });
 
+let renderStartTime = new Date().getTime();
+let renderEndTime = renderStartTime;
+let renderFinished = false;
+let frameCount = 0;
+const baseSamples = isMobile ? 50 : 200;
+const maxSamples = isMobile ? 100 : 500;
 // 渲染循环
-const _localCamPos = new THREE.Vector3();
-
 const animate = (): void => {
+    frameCount += 1;
     requestAnimationFrame(animate);
     controls.update();
 
-    // 将相机世界坐标变换到 Plane_2 的本地坐标系
-    // 局部 Z > 0 表示相机在 Plane_2 正面一侧，< 0 则在背面一侧
-    if (plane2Mesh && plane2Back && plane3Mesh && plane3Back) {
-        _localCamPos.copy(camera.position);
-        plane2Mesh.worldToLocal(_localCamPos);
-        const onFront = _localCamPos.y > 0;
-        const p2o = onFront ? 2 : 1;
-        const p3o = onFront ? 1 : 2;
-        plane2Mesh.renderOrder = p2o;
-        plane2Back.renderOrder = p2o;
-        plane3Mesh.renderOrder = p3o;
-        plane3Back.renderOrder = p3o;
+    passport.updateRenderOrder(camera);
+
+    if (needsPathTracerMaterialSync && arePassportTexturesReady()) {
+        pathTracer.updateMaterials();
+        needsPathTracerMaterialSync = false;
     }
 
-    renderer.render(scene, camera);
+    const samplesElement = document.getElementById('samples');
+    if (samplesElement) {
+        samplesElement.textContent = `采样数: ${pathTracer.samples.toFixed(0)} / 耗时: ${((renderEndTime - renderStartTime) / 1000).toFixed(2)}s`;
+    }
+
+    // renderer.render(scene, camera);
+    if(pathTracer.samples < maxSamples) {
+        if(pathTracer.samples < baseSamples || (pathTracer.samples >= baseSamples && frameCount % 10 === 0)) {
+            pathTracer.renderSample();
+        }
+        if(renderFinished) return;
+        renderEndTime = new Date().getTime();
+    } else if(Number(pathTracer.samples.toFixed(0)) === maxSamples) {
+        if(renderFinished) return;
+        renderFinished = true;
+        renderEndTime = new Date().getTime();
+    }
 };
 
 animate();
+
+controls.addEventListener('change', () => {
+    pathTracer.updateCamera();
+    renderFinished = false;
+    renderStartTime = new Date().getTime();
+});
 
 // 窗口自适应
 window.addEventListener('resize', () => {
