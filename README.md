@@ -26,11 +26,10 @@ npm run dev
 ## 版权声明
 [明日方舟](https://ak.hypergryph.com) 及 [明日方舟：终末地](https://endfield.hypergryph.com) 是 [鹰角网络](https://www.hypergryph.com) 旗下的两款游戏作品，游戏名称、通行证样式等相关元素均为鹰角网络的注册商标与版权内容。本项目对通行证相关周边产品进行建模与渲染展示，属于对游戏元素的二次创作，本项目代码遵循 AGPL-3.0 协议开源发布，模型与图片素材遵循 CC BY-SA 4.0 协议授权发布，均非商业用途。如有任何版权相关问题，请提出 issue 进行协商。
 
-## 模型与图片素材声明
-
+## 模型素材版权说明
 ![CC BY-SA 4.0](https://licensebuttons.net/l/by-sa/4.0/88x31.png)
 
-本项目中用于展示的模型与图片贴图素材（包括但不限于 `public/models/` 与 `public/textures/passport/` 下内容）采用 **Creative Commons Attribution-ShareAlike (CC BY-SA 4.0)** 协议进行授权发布。
+本项目中用于展示的模型素材（`public/models/` 下内容）采用 **Creative Commons Attribution-ShareAlike (CC BY-SA 4.0)** 协议进行授权发布。
 
 你在使用、修改或再分发这些素材时，需要满足以下条件：
 
@@ -43,4 +42,6 @@ npm run dev
 - 原作者署名信息
 - 协议链接：`https://creativecommons.org/licenses/by-sa/4.0/`
 
-其中，`public/textures/passport/napcat` 下的贴图版权归 [Napcat](https://github.com/NapNeko/NapCatQQ) 所有，使用请额外取得 Napcat 的授权许可。
+## 图片素材版权说明
+- `public/textures/passport/napcat` 下的贴图版权归 [Napcat](https://github.com/NapNeko/NapCatQQ) 所有，勿在未经授权的情况下使用、修改或再分发这些贴图素材。
+- `public/textures/passport/lifeng_x1` 下的贴图版权归 [鹰角网络](https://www.hypergryph.com) 所有，请勿在商业项目中使用这些贴图素材。
