@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { withBase } from './assetUrl.js';
 
 /**
  * 负责 Passport 模型的加载、纹理应用及渲染顺序动态排序
@@ -53,7 +54,7 @@ export class PassportModel {
             texture.image = canvas;
             texture.needsUpdate = true;
         };
-        img.src = path;
+        img.src = withBase(path);
         return texture;
     }
 
@@ -74,7 +75,7 @@ export class PassportModel {
         const tl = new THREE.TextureLoader();
 
         const loadTex = (path: string) => {
-            const tex = tl.load(path);
+            const tex = tl.load(withBase(path));
             tex.colorSpace = THREE.SRGBColorSpace;
             tex.flipY = false;
             return tex;
@@ -122,7 +123,7 @@ export class PassportModel {
     ): void {
         const loader = new GLTFLoader();
         loader.load(
-            `/models/${this._modelsPrefix}passport.glb`,
+            withBase(`models/${this._modelsPrefix}passport.glb`),
             (gltf: GLTF) => {
                 this._gltfRoot = gltf.scene;
                 gltf.scene.traverse((child) => {

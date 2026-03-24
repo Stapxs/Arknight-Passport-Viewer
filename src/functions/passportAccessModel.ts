@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { withBase } from './assetUrl.js';
 
 export class PassportAccessModel {
 
@@ -19,7 +20,7 @@ export class PassportAccessModel {
     ): void {
         const loader = new GLTFLoader();
         loader.load(
-            `models/rope_${this._type}.glb`,
+            withBase(`models/rope_${this._type}.glb`),
             (gltf) => {
                 gltf.scene.traverse((child) => {
                     if(child instanceof THREE.Mesh) {
@@ -37,7 +38,7 @@ export class PassportAccessModel {
                 // 加载挂钩模型
                 const hookLoader = new GLTFLoader();
                 hookLoader.load(
-                    `models/hook.glb`,
+                    withBase('models/hook.glb'),
                     (hookGltf) => {
                         hookGltf.scene.traverse((child) => {
                             if(child instanceof THREE.Mesh) {

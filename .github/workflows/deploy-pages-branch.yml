@@ -31,6 +31,8 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build
+        env:
+          VITE_BASE_PATH: /Arknight-Passport-Viewer/
         run: yarn build
 
       - name: Deploy dist to pages branch

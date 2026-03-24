@@ -5,6 +5,7 @@ import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 import { PassportModel } from './functions/PassportModel.js';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { PassportAccessModel } from './functions/passportAccessModel.js';
+import { withBase } from './functions/assetUrl.js';
 
 let isMobile = false;
 export const setIsMobile = (value: boolean) => {
@@ -84,7 +85,7 @@ scene.add(spotLight);
 // const hdrLoader = new HDRLoader();
 
 // // 加载 HDR 文件
-// hdrLoader.load('/textures/puresky.hdr', (texture) => {
+// hdrLoader.load(withBase('textures/puresky.hdr'), (texture) => {
 //     texture.mapping = THREE.EquirectangularReflectionMapping;
 //     scene.background = texture;
 //     scene.environment = texture;
@@ -96,7 +97,7 @@ scene.add(spotLight);
 const exrLoader = new EXRLoader();
 
 // 加载 EXR 文件
-exrLoader.load('/textures/top_area_light_2.exr', (texture) => {
+exrLoader.load(withBase('textures/top_area_light_2.exr'), (texture) => {
     texture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = texture;
     scene.environment = texture;
