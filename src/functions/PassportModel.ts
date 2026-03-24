@@ -142,36 +142,30 @@ export class PassportModel {
                                 attenuationColor: new THREE.Color(0xeceff1),
                                 attenuationDistance: 0.5,
                             });
-                        } else {
-                            if (child.name === 'Plane_2') {
-                                this.plane2Mesh = child;
-                                this.plane2Back = this.applyDoubleSidedTexture(
-                                    child,
-                                    `textures/passport/${this._texturesDir}/11.png`,
-                                    `textures/passport/${this._texturesDir}/12.png`,
-                                    true,
-                                );
-                            }
-                            if (child.name === 'Plane_3') {
-                                this.plane3Mesh = child;
-                                this.plane3Back = this.applyDoubleSidedTexture(
-                                    child,
-                                    `textures/passport/${this._texturesDir}/22.png`,
-                                    `textures/passport/${this._texturesDir}/21.png`,
-                                );
-                            }
+                        } else if (child.name === 'Plane_2') {
+                            this.plane2Mesh = child;
+                            this.plane2Back = this.applyDoubleSidedTexture(
+                                child,
+                                `textures/passport/${this._texturesDir}/11.png`,
+                                `textures/passport/${this._texturesDir}/12.png`,
+                                true,
+                            );
+                        }
+                        else if (child.name === 'Plane_3') {
+                            this.plane3Mesh = child;
+                            this.plane3Back = this.applyDoubleSidedTexture(
+                                child,
+                                `textures/passport/${this._texturesDir}/22.png`,
+                                `textures/passport/${this._texturesDir}/21.png`,
+                            );
                         }
                     }
                 });
                 scene.add(gltf.scene);
                 onLoaded?.(gltf);
             },
-            (xhr) => {
-                onProgress?.(xhr);
-            },
-            (error) => {
-                onError?.(error);
-            },
+            onProgress,
+            onError
         );
     }
 
@@ -206,6 +200,10 @@ export class PassportModel {
         this.plane3Mesh.renderOrder = p3o;
         this.plane3Back.renderOrder = p3o;
         return true;
+    }
+
+    public getModelRoot(): THREE.Group | null {
+        return this._gltfRoot;
     }
 
     // -------------------------------------------------------------------------
