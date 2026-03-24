@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Arknights Passport Viewer</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-        code { position: absolute; top: 10px; left: 10px; }
-    </style>
+    <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
-    <code id="samples"></code>
-    <script type="module" src="/src/main.ts"></script>
+    <div class="debug">
+        <div>
+            <span>渲染</span>
+            <div><a>采样计数：</a><code id="debug-samples">--</code></div>
+            <div><a>采样耗时：</a><code id="debug-cost-time">--</code></div>
+        </div>
+        <div>
+            <span>设置</span>
+            <div><a>光线追踪：</a><input type="checkbox" id="use-webgl"></div>
+            <div><a>暂停采样：</a><input type="checkbox" id="pause-sampling"></div>
+        </div>
+    </div>
+    <script type="module" src="src/ui.ts"></script>
+    <script type="module" src="src/main.ts"></script>
 </body>
 </html>

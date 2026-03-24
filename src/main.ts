@@ -6,16 +6,34 @@ import { PassportModel } from './functions/PassportModel.js';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { PassportAccessModel } from './functions/passportAccessModel.js';
 
-const useWebGL = true;
-const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+let isMobile = false;
+export const setIsMobile = (value: boolean) => {
+    isMobile = value;
+}
+
+export let useWebGL = false;
+export const updateUseWebGL = (value: boolean) => {
+    useWebGL = value;
+}
+export const pauseWebGL = () => {
+    renderFinished = !renderFinished;
+}
+
+export const modelsPrefix = '';
+export const texturesDir = 'napcat';
+export const accType = 'silver';
+
+let animateCallBack = (pathTracer: WebGLPathTracer, action: 'update' | 'start' | 'render' | 'end') => {
+    void pathTracer;
+    void action;
+};
+export const setAnimateCallBack = (cb: (pathTracer: WebGLPathTracer, action: 'update' | 'start' | 'render' | 'end') => void) => {
+    animateCallBack = cb;
+}
 
 // 初始化场景
 const scene: THREE.Scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeeee);
-
-const modelsPrefix = '';
-const texturesDir = 'napcat';
-const accType = 'silver';
 
 // 初始化相机
 const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(
@@ -137,9 +155,7 @@ passport.load(scene, () => {
     }
 });
 
-let renderStartTime = new Date().getTime();
-let renderEndTime = renderStartTime;
-let renderFinished = false;
+export let renderFinished = false;
 let frameCount = 0;
 const baseSamples = isMobile ? 50 : 200;
 const maxSamples = isMobile ? 100 : 500;
@@ -156,22 +172,20 @@ const animate = (): void => {
         needsPathTracerMaterialSync = false;
     }
 
-    if(useWebGL) {
-        const samplesElement = document.getElementById('samples');
-        if (samplesElement) {
-            samplesElement.textContent = `采样数: ${pathTracer.samples.toFixed(0)} / 耗时: ${((renderEndTime - renderStartTime) / 1000).toFixed(2)}s`;
-        }
+    animateCallBack(pathTracer, 'update');
 
+    if(useWebGL) {
         if(pathTracer.samples < maxSamples) {
+            if(renderFinished) return;
             if(pathTracer.samples < baseSamples || (pathTracer.samples >= baseSamples && frameCount % 10 === 0)) {
                 pathTracer.renderSample();
             }
-            if(renderFinished) return;
-            renderEndTime = new Date().getTime();
+            animateCallBack(pathTracer, 'render');
         } else if(Number(pathTracer.samples.toFixed(0)) === maxSamples) {
             if(renderFinished) return;
             renderFinished = true;
-            renderEndTime = new Date().getTime();
+            animateCallBack(pathTracer, 'render');
+            animateCallBack(pathTracer, 'end');
         }
     } else {
         renderer.render(scene, camera);
@@ -183,7 +197,7 @@ animate();
 controls.addEventListener('change', () => {
     pathTracer.updateCamera();
     renderFinished = false;
-    renderStartTime = new Date().getTime();
+    animateCallBack(pathTracer, 'start');
 });
 
 // 窗口自适应
